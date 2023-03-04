@@ -20,7 +20,10 @@ export function hasFile(hash: string): string | undefined {
     const fileNames = readdirSync("./files");
     console.log(fileNames)
     for (const fileName of fileNames) {
-        if (smallSha(fileName) === hash) {
+        console.log(fileName)
+        console.log(smallSha(fileName))
+        console.log()
+        if (smallSha(fileName) === hash.trim()) {
             return fileName;
         }
     }
