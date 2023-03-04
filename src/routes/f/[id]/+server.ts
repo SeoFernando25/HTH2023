@@ -11,7 +11,7 @@ export const GET: RequestHandler = (({ params }) => {
     const fileName = hasFile(id);
     if (fileName) {
         console.log("Found file");
-        const file = getFile("./files/" + fileName);
+        const file = getFile(fileName);
 
         // Remove the last part of the file name "{actual_filename}_{number}
         const actualFileName = fileName.split("_").slice(0, -1).join("_");
