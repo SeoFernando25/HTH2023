@@ -10,6 +10,11 @@ import {
 
 import { createHash } from "crypto";
 
+const dataDir = "./files";
+if (!existsSync(dataDir)) {
+    mkdirSync(dataDir);
+}
+
 const fileNames = readdirSync("./files");
 
 function sha256(data: string) {
@@ -27,10 +32,7 @@ fileNames.forEach((fileName) => {
 });
 
 
-const dataDir = "./files";
-if (!existsSync(dataDir)) {
-    mkdirSync(dataDir);
-}
+
 
 
 
