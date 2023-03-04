@@ -3,7 +3,9 @@
   import { browser } from "$app/environment";
 </script>
 
-<slot />
+<div class="h-screen flex flex-col">
+  <slot />
+</div>
 
 <style>
   @tailwind base;

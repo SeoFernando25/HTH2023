@@ -1,28 +1,43 @@
 
 import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from '$env/static/private';
 import AWS, { S3 } from 'aws-sdk';
-import type { PutObjectRequest } from 'aws-sdk/clients/s3';
+import type { GetBucketWebsiteRequest, GetObjectAttributesRequest, GetObjectOutput, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { smallSha } from './sha';
 import { smallRandom } from './uuid';
 
 
-const BUCKET_NAME = 'hth-storage-bucket';
+export const BUCKET_NAME = 'hth-storage-bucket';
 process.env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID;
 process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY;
 
-AWS.config.update({ region: 'us-west-2' });
 
 const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 
+export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3): string | undefined {
+    const { config: { params, region, } } = s3Bucket;
+
+    if (!region) {
+        return;
+    }
+    const assetUrl = `https://${BUCKET_NAME}.${s3Bucket.endpoint.host}/${fileName}`
+    console.log("Asset url: ", assetUrl);
+    return assetUrl;
+};
+
 export async function saveBlob(fn: string, blob: Blob): Promise<string> {
     const blobKey = smallRandom();
-
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log(buffer.length)
+    console.log("Uploading file: ", fn, " to ", blobKey);
+
+    // convert fn to uri encoded
+    const encodedFn = encodeURIComponent(fn);
+
     const uploadParams: PutObjectRequest = {
         Bucket: BUCKET_NAME,
         Key: blobKey, Body: buffer,
-        ContentDisposition: `attachment; filename="${fn}"`
+        ContentDisposition: `attachment; filename="${encodedFn}"`
     };
 
     return new Promise((resolve, reject) => {
@@ -30,28 +45,17 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
             if (err) {
                 reject(err);
             } if (data) {
+                console.log(data.Location)
                 resolve(data.Location);
             }
         });
     });
 }
 
-export async function loadBlob(blobId: string): Promise<S3.Body> {
-    const params = { Bucket: BUCKET_NAME, Key: blobId };
-    return new Promise((resolve, reject) => {
-        s3.getObject(params, function (err, data) {
-            if (err) {
-                reject(err);
-            } if (data) {
-                if (!data.Body) {
-                    reject("No body");
-                } else {
-                    resolve(data.Body);
-                }
-            }
-        });
-    });
-}
+// export async function loadBlob(blobId: string): void {
+//     const url = getUrlFromBucket(s3, blobId) ?? "";
+//     console.log("Loading blob: ", blobId, " from ", url);
+// };
 
 
 export async function getAllFilenames(): Promise<string[]> {

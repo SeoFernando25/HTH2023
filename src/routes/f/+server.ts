@@ -10,8 +10,8 @@ function smallRandom() {
 export const POST = (async ({ request, url }) => {
     console.log("Uploading something....")
     const blob = await request.blob();
-    const sizeInKb = blob.size / 1024;
     const filename = url.searchParams.get("name") ?? smallRandom();
     const uri = await saveBlob(filename, blob);
+
     return new Response(uri);
 }) satisfies RequestHandler;
