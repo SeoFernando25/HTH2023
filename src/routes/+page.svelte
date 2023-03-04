@@ -29,11 +29,16 @@
     // Call f/ post endpoint, body is the file itself
     // and pass name as query param
 
-    let content = droppedFile;
+    console.log(droppedFile);
 
     const results = await fetch(`/f?name=${droppedFile.name}`, {
       method: "POST",
-      body: content,
+      body: droppedFile,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      //@ts-ignore
+      duplex: "half",
     });
 
     const res = await results.text();
