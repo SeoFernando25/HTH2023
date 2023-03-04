@@ -16,7 +16,6 @@ export function filesInit() {
 }
 
 export function hasFile(hash: string): string | undefined {
-
     const fileNames = readdirSync("./files");
     console.log(fileNames)
     for (const fileName of fileNames) {
