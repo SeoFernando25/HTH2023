@@ -71,7 +71,7 @@ export async function getAllFilenames(): Promise<string[]> {
 export async function addUserKeys(username: string, info: UserServerInfo): Promise<string> {
 
     try {
-        const user = await getUserKeys(username);
+        await getUserKeys(username);
         return new Promise((resolve, reject) => {
             reject("User already exists");
         });
@@ -107,28 +107,29 @@ export async function getUserKeys(username: string): Promise<UserServerInfo> {
             }
 
             // Convert body buffer to string json
-            const body = data.Body?.toString('utf-8');
+            const body = data.Body?.toString();
             if (body == null) {
                 reject("No body");
-            } else {
-                let parsed: any;
-                try {
-                    // 6 Levels of indentation!
-                    parsed = JSON.parse(body);
-                } catch (error) {
-                    deleteUserKeys(username);
-                    reject("Deleting Corrupt User Info: " + username);
-                }
-
-                const userParse = userServerInfoSchema.safeParse(parsed);
-                if (!userParse.success) {
-                    console.error("Deleting Corrupt User Info: ", username);
-                    console.error(parsed);
-                    deleteUserKeys(username);
-                    return reject("Invalid user info");
-                }
-                resolve(parsed as UserServerInfo);
+                return;
             }
+            let parsed: any;
+            try {
+                parsed = JSON.parse(body);
+            } catch (error) {
+                deleteUserKeys(username);
+                console.error("Deleting Corrupt User Info: ", username);
+                reject("Corrupt user info");
+            }
+
+            const userParse = userServerInfoSchema.safeParse(parsed);
+            if (!userParse.success) {
+                console.error("Deleting Corrupt User Info: ", username);
+                console.error(parsed);
+                deleteUserKeys(username);
+                return reject("Invalid user info");
+            }
+            resolve(parsed as UserServerInfo);
+
         });
     });
 }

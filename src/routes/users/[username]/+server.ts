@@ -38,7 +38,7 @@ export const POST = (async ({ request, params }) => {
     }
 
     try {
-        const r = await addUserKeys(params?.username ?? '', userInfo);
+        await addUserKeys(params?.username ?? '', userInfo);
     } catch (error) {
         console.log(error);
         return new Response("Bad request", { status: 400 });

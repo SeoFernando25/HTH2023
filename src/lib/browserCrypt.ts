@@ -1,4 +1,5 @@
 import type { UserServerInfo, UserLocalInfo } from "./models/UserInfo";
+import { intArrayToNumberArray, numberArrayToIntArray } from "./util";
 
 const AES_TYPE = "AES-GCM";
 const RSA_TYPE = "RSA-OAEP";
@@ -75,7 +76,8 @@ export async function AESencryptBytes(ivSource: string, data: BufferSource, key:
         key,
         data
     );
-    return encrypted;
+    const uintArr = new Uint8Array(encrypted);
+    return uintArr;
 }
 
 
@@ -94,8 +96,8 @@ export async function AESdecryptBytes(ivSource: string, data: BufferSource | str
         key,
         data
     );
-    console.log("here")
-    return decrypted;
+    const uintArr = new Uint8Array(decrypted);
+    return uintArr;
 }
 
 export async function createUserLocalInfo(username: string, password: string) {
@@ -127,7 +129,7 @@ export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
         aesKey
     );
 
-    const encryptedPrivateKeyString = new TextDecoder().decode(encryptedPrivateKey);
+    const encryptedPrivateKeyString = intArrayToNumberArray(encryptedPrivateKey);
 
     const exportPublicKey = await window.crypto.subtle.exportKey(
         "jwk",
@@ -152,10 +154,9 @@ export async function serverInfoToUserInfo(serverInfo: UserServerInfo, username:
 
     const serverInfoPrivKeyBuff = await AESdecryptBytes(
         username,
-        serverInfo.encryptedPrivateKey,
+        numberArrayToIntArray(serverInfo.encryptedPrivateKey),
         aesKey
     );
-    console.log("here")
 
     const serverInfoPrivKey = await arrayBufferToPrivateRSAKey(
         serverInfoPrivKeyBuff

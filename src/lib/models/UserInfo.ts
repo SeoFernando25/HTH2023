@@ -14,7 +14,7 @@ export interface UserLocalInfo {
 export const userServerInfoSchema = z.object({
     hashedPassword: z.string(),
     publicKey: jsonWebKeySchema,
-    encryptedPrivateKey: z.string()
+    encryptedPrivateKey: z.array(z.number()),
 });
 
 export type UserServerInfo = z.infer<typeof userServerInfoSchema>;
