@@ -32,7 +32,6 @@
   /* Bottom right image, that is slightly hidden and does not cause overflow */
   .bottom-art {
     position: fixed;
-    pointer-events: none;
     bottom: 0;
     right: 0;
     transform: translate(15%, 30%) scaleX(-1);

@@ -187,45 +187,5 @@
       class="hidden"
       on:change={onFileChange}
     />
-
-    <div
-      class="w-full flex gap-4 align-middle justify-center items-center min-h-12 mt-4"
-    >
-      <select
-        bind:value={selectedSendType}
-        class="flex-1 select select-bordered"
-      >
-        <option selected value="unencrypted">Unencrypted</option>
-        <option value="private">Private</option>
-        <option value="protected">Password Protected</option>
-        <option value="transfer">Secure Transfer</option>
-      </select>
-      <div class="flex-1 ">
-        {#if selectedSendType === "private"}
-          {#if $loggedUser === null}
-            <div class="alert alert-warning shadow-lg">
-              <div>
-                <span
-                  >You need to log in or create an account to upload private
-                  files</span
-                >
-              </div>
-            </div>
-          {/if}
-        {:else if selectedSendType === "protected"}
-          <input
-            bind:value={encryptionPassword}
-            class="input input-bordered w-full"
-            placeholder="Password"
-          />
-        {:else if selectedSendType === "transfer"}
-          <input
-            bind:value={recipientName}
-            class="input input-bordered w-full"
-            placeholder="Recipient Username"
-          />
-        {/if}
-      </div>
-    </div>
   </div>
 </div>
