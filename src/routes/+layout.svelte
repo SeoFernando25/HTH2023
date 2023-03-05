@@ -23,7 +23,21 @@
       rsa.privateKey
     );
 
+    const encryptedPrivateKey = await encryptBytes(
+      "private_key",
+      rsaPrivateKey,
+      key
+    );
+
     console.log("EXPORT:", rsaPrivateKey);
+    console.log("ENCRYPTED:", encryptedPrivateKey);
+
+    const decryptedPK = await decryptBytes(
+      "private_key",
+      encryptedPrivateKey,
+      key
+    );
+    console.log("DECRYPTED:", decryptedPK);
     // const encrypted_private_key = await encryptBytes(
     //   "private_key",
     //   rsa.privateKey,
