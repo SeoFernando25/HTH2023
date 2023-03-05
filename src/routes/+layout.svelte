@@ -3,10 +3,17 @@
   import { uploadedFiles, type FileEntry } from "$lib/stores";
   import Header from "$lib/components/Header.svelte";
   import {
-    decryptBytes,
-    encryptBytes,
+    createUserLocalInfo,
+    userInfoToServerInfo,
+    AESdecryptBytes,
+    AESencryptBytes,
     generateAESKey,
     generateRSAKey,
+    publicRSAJsonWebTokenToCryptoKey,
+    SHADigest,
+    RSAencryptBytes,
+    RSAdecryptBytes,
+    arrayBufferToPrivateRSAKey,
   } from "$lib/browserCrypt";
 
   onMount(async () => {
@@ -16,42 +23,44 @@
     const username = "username";
     const password = "password";
 
-    const key = await generateAESKey(username, password);
-    const rsa = await generateRSAKey();
-    const rsaPrivateKey = await window.crypto.subtle.exportKey(
-      "pkcs8",
-      rsa.privateKey
+    const info = await createUserLocalInfo(username, password);
+    const serverInfo = await userInfoToServerInfo(info);
+
+    // console.log(info.publicKey);
+    // console.log(serverInfoPubKey);
+
+    // Encrypt with info.publicKey
+    const encrypted = await RSAencryptBytes(original, info.publicKey);
+    // Decrypt with info.privateKey
+    const decrypted = await RSAdecryptBytes(encrypted, info.privateKey);
+
+    console.log("Decrypted: ", new TextDecoder().decode(decrypted));
+
+    // Deserialize serverInfo.publicKey
+    const serverInfoPubKey = await publicRSAJsonWebTokenToCryptoKey(
+      serverInfo.publicKey
+    );
+    // Encrypt with serverInfo.privateKey
+    // AES unencrypt:
+    const serverInfoPrivKeyBuff = await AESdecryptBytes(
+      username,
+      serverInfo.encryptedPrivateKey,
+      info.aesKey
     );
 
-    const encryptedPrivateKey = await encryptBytes(
-      "private_key",
-      rsaPrivateKey,
-      key
+    const serverInfoPrivKey = await arrayBufferToPrivateRSAKey(
+      serverInfoPrivKeyBuff
     );
 
-    console.log("EXPORT:", rsaPrivateKey);
-    console.log("ENCRYPTED:", encryptedPrivateKey);
+    // Encrypt with serverInfo.publicKey
+    const encrypted2 = await RSAencryptBytes(original, serverInfoPubKey);
+    // Decrypt with info.privateKey
+    const decrypted2 = await RSAdecryptBytes(encrypted2, serverInfoPrivKey);
 
-    const decryptedPK = await decryptBytes(
-      "private_key",
-      encryptedPrivateKey,
-      key
-    );
-    console.log("DECRYPTED:", decryptedPK);
-    // const encrypted_private_key = await encryptBytes(
-    //   "private_key",
-    //   rsa.privateKey,
-    //   key
-    // );
+    console.log("Decrypted2: ", new TextDecoder().decode(decrypted2));
 
-    // Encrypt
-    const encrypted = await encryptBytes(txt, original, key);
-    console.log(new TextDecoder().decode(encrypted));
-
-    // Decrypt
-    const decrypted = await decryptBytes(txt, encrypted, key);
-    console.log(new TextDecoder().decode(decrypted));
-
+    // console.log(info);
+    // console.log(serverInfo);
     // Check if we have a "uploads" key in localStorage a json array
     const uploads = localStorage.getItem("uploads");
     if (!uploads) {

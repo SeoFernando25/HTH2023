@@ -1,9 +1,10 @@
 
 import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from '$env/static/private';
 import AWS, { S3 } from 'aws-sdk';
-import type { GetBucketWebsiteRequest, GetObjectAttributesRequest, GetObjectOutput, PutObjectRequest } from 'aws-sdk/clients/s3';
+import type { GetBucketWebsiteRequest, GetObjectAttributesRequest, GetObjectOutput, GetObjectRequest, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { smallSha } from './sha';
 import { smallRandom } from './uuid';
+import type { UserServerInfo } from '$lib/models/UserInfo';
 
 
 export const STORAGE_BUCKET_NAME = 'hth-storage-bucket';
@@ -14,13 +15,13 @@ process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY;
 
 const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 
-export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3): string | undefined {
+export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3, bucket = STORAGE_BUCKET_NAME): string | undefined {
     const { config: { params, region, } } = s3Bucket;
 
     if (!region) {
         return;
     }
-    const assetUrl = `https://${STORAGE_BUCKET_NAME}.${s3Bucket.endpoint.host}/${fileName}`
+    const assetUrl = `https://${bucket}.${s3Bucket.endpoint.host}/${fileName}`
     console.log("Asset url: ", assetUrl);
     return assetUrl;
 };
@@ -53,12 +54,6 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
     });
 }
 
-// export async function loadBlob(blobId: string): void {
-//     const url = getUrlFromBucket(s3, blobId) ?? "";
-//     console.log("Loading blob: ", blobId, " from ", url);
-// };
-
-
 export async function getAllFilenames(): Promise<string[]> {
     const params = { Bucket: STORAGE_BUCKET_NAME };
     return new Promise((resolve, reject) => {
@@ -71,6 +66,44 @@ export async function getAllFilenames(): Promise<string[]> {
                 } else {
                     resolve(data.Contents.map(c => c.Key ?? ""));
                 }
+            }
+        });
+    });
+}
+
+export async function addUserKeys(username: string, info: UserServerInfo): Promise<string> {
+    // TODO: Verify that the username is not already taken
+    const uploadParams: PutObjectRequest = {
+        Bucket: USER_INFO_BUCKET_NAME,
+        Key: username, Body: {
+            publicKey: info.publicKey,
+            encryptedPrivateKey: info.encryptedPrivateKey,
+            hashedPassword: info.hashedPassword // Not needed but allows user to verify password
+        } satisfies UserServerInfo
+    };
+    return new Promise((resolve, reject) => {
+        s3.upload(uploadParams, function (err, data) {
+            if (err) {
+                reject(err);
+            } if (data) {
+                resolve(data.Location);
+            }
+        });
+    });
+}
+
+export function getUserKeysUrl(username: string): string | undefined {
+    return getUrlFromBucket(username, s3, USER_INFO_BUCKET_NAME);
+}
+
+export async function getUserKeys(username: string): Promise<UserServerInfo> {
+    const params: GetObjectRequest = { Bucket: USER_INFO_BUCKET_NAME, Key: username };
+    return new Promise((resolve, reject) => {
+        s3.getObject(params, function (err, data) {
+            if (err) {
+                reject(err);
+            } if (data) {
+                resolve(data.Body as UserServerInfo);
             }
         });
     });
