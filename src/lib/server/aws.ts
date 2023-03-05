@@ -75,11 +75,12 @@ export async function addUserKeys(username: string, info: UserServerInfo): Promi
     // TODO: Verify that the username is not already taken
     const uploadParams: PutObjectRequest = {
         Bucket: USER_INFO_BUCKET_NAME,
-        Key: username, Body: {
-            publicKey: info.publicKey,
-            encryptedPrivateKey: info.encryptedPrivateKey,
-            hashedPassword: info.hashedPassword // Not needed but allows user to verify password
-        } satisfies UserServerInfo
+        Key: username,
+        Body: JSON.stringify(info) //, {
+        // publicKey: info.publicKey,
+        // encryptedPrivateKey: info.encryptedPrivateKey,
+        // hashedPassword: info.hashedPassword // Not needed but allows user to verify password
+        // } // satisfies UserServerInfo
     };
     return new Promise((resolve, reject) => {
         s3.upload(uploadParams, function (err, data) {
@@ -103,7 +104,16 @@ export async function getUserKeys(username: string): Promise<UserServerInfo> {
             if (err) {
                 reject(err);
             } if (data) {
-                resolve(data.Body as UserServerInfo);
+                // Convert body buffer to string json
+                const body = data.Body?.toString('utf-8');
+                if (body == null) {
+                    reject("No body");
+                } else {
+                    const parsed = JSON.parse(body);
+                    // TODO: Schema validation
+                    resolve(parsed as UserServerInfo);
+                }
+
             }
         });
     });

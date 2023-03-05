@@ -9,7 +9,7 @@ export interface UserLocalInfo {
 
 // We don't store the username in the server info because it is already the key
 export interface UserServerInfo {
-    hashedPassword: ArrayBuffer;
+    hashedPassword: string;
     publicKey: JsonWebKey;
-    encryptedPrivateKey: ArrayBuffer;
+    encryptedPrivateKey: string;
 }

@@ -1,26 +1,43 @@
 import type { UserServerInfo } from "$lib/models/UserInfo";
-import { getUserKeys } from "$lib/server/aws";
+import { addUserKeys, getUserKeys } from "$lib/server/aws";
 import type { RequestHandler } from "@sveltejs/kit";
 
 export const GET = (async ({ params }) => {
     if (!params.username) return new Response("Not found", { status: 404 });
-    const userInfo = await getUserKeys(params.username);
+    let userInfo: UserServerInfo;
+    try {
+        userInfo = await getUserKeys(params.username);
+    } catch (error) {
+        return new Response("Not found", { status: 404 });
+    }
 
-    console.log("User info: ", userInfo);
-
-    return new Response("Not found", { status: 404 });
+    return new Response(JSON.stringify(userInfo), { status: 200 });
 }) satisfies RequestHandler;
 
 
-export const POST = (async ({ request, url }) => {
-    // TODO: Verify that the username is not already taken
+export const POST = (async ({ request, params }) => {
+    try {
+        const userInfo = await getUserKeys(params.username ?? '');
+        return new Response("User already exists", { status: 409 });
+    } catch (error) {
+        //If user does not exist, we are good to go
+    }
+
+
     let userInfo: UserServerInfo;
     try {
         userInfo = await request.json() satisfies UserServerInfo;
         // TODO: Schema validation
     } catch (error) {
+        console.log(error);
         return new Response("Bad request", { status: 400 });
     }
-    console.log("got user info: ", userInfo);
-    return new Response("Not found", { status: 404 });
+
+    try {
+        const r = await addUserKeys(params?.username ?? '', userInfo);
+    } catch (error) {
+        console.log(error);
+        return new Response("Bad request", { status: 400 });
+    }
+    return new Response("OK", { status: 200 });
 }) satisfies RequestHandler;

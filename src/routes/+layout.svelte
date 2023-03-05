@@ -14,53 +14,40 @@
     RSAencryptBytes,
     RSAdecryptBytes,
     arrayBufferToPrivateRSAKey,
+    serverInfoToUserInfo,
   } from "$lib/browserCrypt";
 
   onMount(async () => {
     // TODO: Remove this later (currently for testing RSA and AES encryption)
-    const txt = "Hello World";
-    const original = new TextEncoder().encode(txt);
     const username = "username";
     const password = "password";
 
     const info = await createUserLocalInfo(username, password);
     const serverInfo = await userInfoToServerInfo(info);
 
-    // console.log(info.publicKey);
-    // console.log(serverInfoPubKey);
+    // call /users/{username} endpoint to post/create user
+    const response = await fetch(`/users/${username}`, {
+      method: "POST",
+      body: JSON.stringify(serverInfo),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-    // Encrypt with info.publicKey
-    const encrypted = await RSAencryptBytes(original, info.publicKey);
-    // Decrypt with info.privateKey
-    const decrypted = await RSAdecryptBytes(encrypted, info.privateKey);
+    // call /users/{username} endpoint to get user
+    const serverInfoResponse = await fetch(`/users/${username}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-    console.log("Decrypted: ", new TextDecoder().decode(decrypted));
+    const serverInfoDeserialized = await serverInfoResponse.json();
 
-    // Deserialize serverInfo.publicKey
-    const serverInfoPubKey = await publicRSAJsonWebTokenToCryptoKey(
-      serverInfo.publicKey
-    );
-    // Encrypt with serverInfo.privateKey
-    // AES unencrypt:
-    const serverInfoPrivKeyBuff = await AESdecryptBytes(
-      username,
-      serverInfo.encryptedPrivateKey,
-      info.aesKey
-    );
+    console.log("serverInfo", serverInfoDeserialized);
 
-    const serverInfoPrivKey = await arrayBufferToPrivateRSAKey(
-      serverInfoPrivKeyBuff
-    );
+    console.log("response", response);
 
-    // Encrypt with serverInfo.publicKey
-    const encrypted2 = await RSAencryptBytes(original, serverInfoPubKey);
-    // Decrypt with info.privateKey
-    const decrypted2 = await RSAdecryptBytes(encrypted2, serverInfoPrivKey);
-
-    console.log("Decrypted2: ", new TextDecoder().decode(decrypted2));
-
-    // console.log(info);
-    // console.log(serverInfo);
     // Check if we have a "uploads" key in localStorage a json array
     const uploads = localStorage.getItem("uploads");
     if (!uploads) {

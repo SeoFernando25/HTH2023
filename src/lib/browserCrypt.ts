@@ -75,7 +75,11 @@ export async function AESencryptBytes(ivSource: string, data: BufferSource, key:
 }
 
 
-export async function AESdecryptBytes(ivSource: string, data: BufferSource, key: CryptoKey) {
+export async function AESdecryptBytes(ivSource: string, data: BufferSource | string, key: CryptoKey) {
+    if (typeof data === "string") {
+        data = new TextEncoder().encode(data);
+    }
+
     const iv = await SHADigest(ivSource);
     const decrypted = await window.crypto.subtle.decrypt(
         {
@@ -104,6 +108,7 @@ export async function createUserLocalInfo(username: string, password: string) {
 export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
     const { username, password, publicKey, privateKey, aesKey } = userInfo;
     const hashedPassword = await SHADigest(password);
+    const hashedPasswordString = new TextDecoder().decode(hashedPassword);
 
     const exportPrivateKey = await window.crypto.subtle.exportKey(
         "pkcs8",
@@ -116,6 +121,8 @@ export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
         aesKey
     );
 
+    const encryptedPrivateKeyString = new TextDecoder().decode(encryptedPrivateKey);
+
     const exportPublicKey = await window.crypto.subtle.exportKey(
         "jwk",
         publicKey
@@ -123,9 +130,9 @@ export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
 
 
     const serverInfo: UserServerInfo = {
-        hashedPassword,
+        hashedPassword: hashedPasswordString,
         publicKey: exportPublicKey,
-        encryptedPrivateKey
+        encryptedPrivateKey: encryptedPrivateKeyString
     }
     return serverInfo;
 }
