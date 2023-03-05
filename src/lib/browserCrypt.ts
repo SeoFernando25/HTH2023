@@ -44,14 +44,19 @@ export async function generateRSAKey() {
     );
 }
 
-export async function RSAencryptBytes(data: BufferSource, key: CryptoKey) {
+export async function RSAencryptBytes(data: Uint8Array, key: CryptoKey) {
+    // gEN NEW RS key
+    const keyPair = await generateRSAKey();
+    console.log("encrypting")
     const encrypted = await window.crypto.subtle.encrypt(
         {
             name: RSA_TYPE,
         },
-        key,
+        keyPair.publicKey,
         data
     );
+    console.log("encrypted")
+    console.log(encrypted);
     return encrypted;
 }
 

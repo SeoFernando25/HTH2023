@@ -73,7 +73,9 @@
         const encryptionKey = await publicRSAJsonWebTokenToCryptoKey(
           recipientInfo.publicKey
         );
-        fileBuffer = await RSAencryptBytes(fileBuffer, encryptionKey);
+
+        const dataArr = new Uint8Array(fileBuffer);
+        fileBuffer = await RSAencryptBytes(dataArr, encryptionKey);
 
         const recipientNameBytes = await RSAencryptBytes(
           new TextEncoder().encode(recipientName),
