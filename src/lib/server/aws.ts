@@ -6,7 +6,8 @@ import { smallSha } from './sha';
 import { smallRandom } from './uuid';
 
 
-export const BUCKET_NAME = 'hth-storage-bucket';
+export const STORAGE_BUCKET_NAME = 'hth-storage-bucket';
+export const USER_INFO_BUCKET_NAME = 'hth-user-keys';
 process.env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID;
 process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY;
 
@@ -19,7 +20,7 @@ export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3): string | 
     if (!region) {
         return;
     }
-    const assetUrl = `https://${BUCKET_NAME}.${s3Bucket.endpoint.host}/${fileName}`
+    const assetUrl = `https://${STORAGE_BUCKET_NAME}.${s3Bucket.endpoint.host}/${fileName}`
     console.log("Asset url: ", assetUrl);
     return assetUrl;
 };
@@ -35,7 +36,7 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
     const encodedFn = encodeURIComponent(fn);
 
     const uploadParams: PutObjectRequest = {
-        Bucket: BUCKET_NAME,
+        Bucket: STORAGE_BUCKET_NAME,
         Key: blobKey, Body: buffer,
         ContentDisposition: `attachment; filename="${encodedFn}"`
     };
@@ -59,7 +60,7 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
 
 
 export async function getAllFilenames(): Promise<string[]> {
-    const params = { Bucket: BUCKET_NAME };
+    const params = { Bucket: STORAGE_BUCKET_NAME };
     return new Promise((resolve, reject) => {
         s3.listObjects(params, function (err, data) {
             if (err) {
