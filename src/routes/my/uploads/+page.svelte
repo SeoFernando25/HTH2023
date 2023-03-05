@@ -1,3 +1,4 @@
+<!-- TODO: Make this page look nicer -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { uploadedFiles, type FileEntry } from "$lib/stores";

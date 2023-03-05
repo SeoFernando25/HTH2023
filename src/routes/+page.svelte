@@ -54,6 +54,10 @@
 
     uploadFile(droppedFile);
   }
+
+  async function onDragOver(event: DragEvent) {
+    event.preventDefault();
+  }
 </script>
 
 <div class=" flex-1 flex flex-col justify-center items-center">
@@ -74,6 +78,7 @@
     {/if}
     <label
       on:drop|preventDefault={dropHandler}
+      on:dragover|preventDefault
       for="file"
       class="w-full h-full btn btn-primary rounded-3xl shadow-2xl"
     >
