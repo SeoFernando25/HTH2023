@@ -154,8 +154,6 @@ export async function serverInfoToUserInfo(serverInfo: UserServerInfo, username:
         serverInfoPrivKeyBuff
     );
 
-    // TODO: Validate the public key (with tests?)
-
     return {
         username: info.username,
         password: info.password,

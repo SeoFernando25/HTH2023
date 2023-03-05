@@ -1,6 +1,7 @@
-import type { UserServerInfo } from "$lib/models/UserInfo";
+import { userServerInfoSchema, type UserServerInfo } from "$lib/models/UserInfo";
 import { addUserKeys, getUserKeys } from "$lib/server/aws";
 import type { RequestHandler } from "@sveltejs/kit";
+import { z } from "zod";
 
 export const GET = (async ({ params }) => {
     if (!params.username) return new Response("Not found", { status: 404 });
@@ -26,10 +27,13 @@ export const POST = (async ({ request, params }) => {
 
     let userInfo: UserServerInfo;
     try {
-        userInfo = await request.json() satisfies UserServerInfo;
-        // TODO: Schema validation
+        const obj = await request.json();
+        userInfo = userServerInfoSchema.parse(obj);
     } catch (error) {
         console.log(error);
+        if (error instanceof z.ZodError<UserServerInfo>) {
+            return new Response(JSON.stringify(error.errors), { status: 400 });
+        }
         return new Response("Bad request", { status: 400 });
     }
 

@@ -1,10 +1,9 @@
 
 import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from '$env/static/private';
 import AWS, { S3 } from 'aws-sdk';
-import type { GetBucketWebsiteRequest, GetObjectAttributesRequest, GetObjectOutput, GetObjectRequest, PutObjectRequest } from 'aws-sdk/clients/s3';
-import { smallSha } from './sha';
+import type { DeleteObjectRequest, GetBucketWebsiteRequest, GetObjectAttributesRequest, GetObjectOutput, GetObjectRequest, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { smallRandom } from './uuid';
-import type { UserServerInfo } from '$lib/models/UserInfo';
+import { userServerInfoSchema, type UserServerInfo } from '$lib/models/UserInfo';
 
 
 export const STORAGE_BUCKET_NAME = 'hth-storage-bucket';
@@ -46,10 +45,10 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
         s3.upload(uploadParams, function (err, data) {
             if (err) {
                 reject(err);
-            } if (data) {
-                console.log(data.Location)
-                resolve(data.Location);
             }
+            console.log(data.Location)
+            resolve(data.Location);
+
         });
     });
 }
@@ -60,35 +59,37 @@ export async function getAllFilenames(): Promise<string[]> {
         s3.listObjects(params, function (err, data) {
             if (err) {
                 reject(err);
-            } if (data) {
-                if (!data.Contents) {
-                    reject("No contents");
-                } else {
-                    resolve(data.Contents.map(c => c.Key ?? ""));
-                }
             }
+            if (!data.Contents) {
+                return reject("No contents");
+            }
+            resolve(data.Contents.map(c => c.Key ?? ""));
         });
     });
 }
 
 export async function addUserKeys(username: string, info: UserServerInfo): Promise<string> {
-    // TODO: Verify that the username is not already taken
+
+    try {
+        const user = await getUserKeys(username);
+        return new Promise((resolve, reject) => {
+            reject("User already exists");
+        });
+    } catch (error) {
+        // If user does not exist, we are good to go
+    }
+
     const uploadParams: PutObjectRequest = {
         Bucket: USER_INFO_BUCKET_NAME,
         Key: username,
-        Body: JSON.stringify(info) //, {
-        // publicKey: info.publicKey,
-        // encryptedPrivateKey: info.encryptedPrivateKey,
-        // hashedPassword: info.hashedPassword // Not needed but allows user to verify password
-        // } // satisfies UserServerInfo
+        Body: JSON.stringify(info)
     };
     return new Promise((resolve, reject) => {
         s3.upload(uploadParams, function (err, data) {
             if (err) {
-                reject(err);
-            } if (data) {
-                resolve(data.Location);
+                return reject(err);
             }
+            resolve(data.Location);
         });
     });
 }
@@ -102,19 +103,44 @@ export async function getUserKeys(username: string): Promise<UserServerInfo> {
     return new Promise((resolve, reject) => {
         s3.getObject(params, function (err, data) {
             if (err) {
-                reject(err);
-            } if (data) {
-                // Convert body buffer to string json
-                const body = data.Body?.toString('utf-8');
-                if (body == null) {
-                    reject("No body");
-                } else {
-                    const parsed = JSON.parse(body);
-                    // TODO: Schema validation
-                    resolve(parsed as UserServerInfo);
+                return reject(err);
+            }
+
+            // Convert body buffer to string json
+            const body = data.Body?.toString('utf-8');
+            if (body == null) {
+                reject("No body");
+            } else {
+                let parsed: any;
+                try {
+                    // 6 Levels of indentation!
+                    parsed = JSON.parse(body);
+                } catch (error) {
+                    deleteUserKeys(username);
+                    reject("Deleting Corrupt User Info: " + username);
                 }
 
+                const userParse = userServerInfoSchema.safeParse(parsed);
+                if (!userParse.success) {
+                    console.error("Deleting Corrupt User Info: ", username);
+                    console.error(parsed);
+                    deleteUserKeys(username);
+                    return reject("Invalid user info");
+                }
+                resolve(parsed as UserServerInfo);
             }
+        });
+    });
+}
+
+export async function deleteUserKeys(username: string): Promise<void> {
+    const params: DeleteObjectRequest = { Bucket: USER_INFO_BUCKET_NAME, Key: username };
+    return new Promise((resolve, reject) => {
+        s3.deleteObject(params, function (err, data) {
+            if (err) {
+                return reject(err);
+            }
+            resolve();
         });
     });
 }

@@ -1,3 +1,5 @@
+import * as z from 'zod';
+import { jsonWebKeySchema } from './other';
 
 export interface UserLocalInfo {
     username: string;
@@ -8,8 +10,11 @@ export interface UserLocalInfo {
 }
 
 // We don't store the username in the server info because it is already the key
-export interface UserServerInfo {
-    hashedPassword: string;
-    publicKey: JsonWebKey;
-    encryptedPrivateKey: string;
-}
+
+export const userServerInfoSchema = z.object({
+    hashedPassword: z.string(),
+    publicKey: jsonWebKeySchema,
+    encryptedPrivateKey: z.string()
+});
+
+export type UserServerInfo = z.infer<typeof userServerInfoSchema>;
