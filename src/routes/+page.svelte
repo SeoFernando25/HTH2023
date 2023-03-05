@@ -1,51 +1,118 @@
 <script lang="ts">
+  import {
+    AESencryptBytes,
+    generateAESKey,
+    publicRSAJsonWebTokenToCryptoKey,
+    RSAencryptBytes,
+  } from "$lib/browserCrypt";
+  import type { UserServerInfo } from "$lib/models/UserInfo";
   import { loggedUser, uploadedFiles } from "$lib/stores";
+  import { page } from "$app/stores";
 
   let isUploading = false;
 
-  let selectedSendType = "unencrypted";
+  type SendTypes = "unencrypted" | "private" | "protected" | "transfer";
+  let selectedSendType: SendTypes = "unencrypted";
   let encryptionPassword = "";
   let recipientName = "";
 
-  export let status: { uri?: string; error?: string } = {};
+  export let uploadStatus: { uri?: string; error?: string } = {};
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, fileName: string) => {
     isUploading = true;
-    const results = await fetch(`/f?name=${file.name}`, {
+
+    let fileBuffer = await file.arrayBuffer();
+    let encryptedRecipientName = "";
+    switch (selectedSendType) {
+      case "unencrypted":
+        break;
+      case "private": {
+        if ($loggedUser === null) {
+          uploadStatus.error = "You need to log in to upload private files";
+          return;
+        }
+        // Encrypt file with user's public key
+
+        const publicKey = $loggedUser.publicKey;
+        fileBuffer = await RSAencryptBytes(fileBuffer, publicKey);
+        break;
+      }
+      case "protected": {
+        if (encryptionPassword === "") {
+          uploadStatus.error = "You need to provide a password";
+          return;
+        }
+
+        // Encrypt file with password
+        const aesKey = await generateAESKey(
+          encryptionPassword,
+          encryptionPassword
+        );
+        fileBuffer = await AESencryptBytes(
+          encryptionPassword,
+          fileBuffer,
+          aesKey
+        );
+        break;
+      }
+      case "transfer": {
+        if (recipientName === "") {
+          uploadStatus.error = "You need to provide a recipient";
+          return;
+        }
+
+        // Fetch recipient's public key
+        const recipient = await fetch(`/users/${recipientName}`);
+
+        if (recipient.status !== 200) {
+          uploadStatus.error = "Recipient not found";
+          return;
+        }
+
+        const recipientInfo: UserServerInfo = await recipient.json();
+        const encryptionKey = await publicRSAJsonWebTokenToCryptoKey(
+          recipientInfo.publicKey
+        );
+        fileBuffer = await RSAencryptBytes(fileBuffer, encryptionKey);
+
+        const recipientNameBytes = await RSAencryptBytes(
+          new TextEncoder().encode(recipientName),
+          encryptionKey
+        );
+        encryptedRecipientName = new TextDecoder().decode(recipientNameBytes);
+        break;
+      }
+    }
+
+    const results = await fetch(`/f?name=${fileName}`, {
       method: "POST",
-      body: file,
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      body: fileBuffer,
       //@ts-ignore
       duplex: "half",
     });
 
     const res = await results.text();
+    console.log("file uploaded");
     isUploading = false;
-    $uploadedFiles = [...$uploadedFiles, { filename: file.name, uri: res }];
+    $uploadedFiles = [...$uploadedFiles, { filename: fileName, uri: res }];
     localStorage.setItem("uploads", JSON.stringify($uploadedFiles));
-    status.uri = res;
+    const lastFragment = res.split("/").pop();
+    if (!lastFragment) {
+      uploadStatus.error = "No file id, something went wrong";
+      return;
+    }
+    uploadStatus.uri = $page.url + "file/" + lastFragment;
   };
 
-  const onFileChange = (event: Event) => {
+  const onFileChange = async (event: Event) => {
     const target = event.target as HTMLInputElement;
     const items = target.files;
     if (!items) {
-      status.error = "No files";
+      uploadStatus.error = "No files";
       return;
     }
 
-    alert(
-      "File being uploaded with: " +
-        selectedSendType +
-        "; extra: " +
-        encryptionPassword +
-        "; " +
-        recipientName
-    );
-
-    // uploadFile(items[0]);
+    uploadFile(items[0], items[0].name);
   };
 
   async function dropHandler(event: DragEvent) {
@@ -54,35 +121,38 @@
     }
     const items = event.dataTransfer.items;
     if (items.length === 0) {
-      status.error = "No files";
+      uploadStatus.error = "No files";
       return;
     }
 
     const droppedFile = items[0].getAsFile();
     if (!droppedFile) {
-      status.error = "Not a file";
+      uploadStatus.error = "Not a file";
       return;
     }
 
-    uploadFile(droppedFile);
+    uploadFile(droppedFile, droppedFile.name);
   }
 </script>
 
 <div class=" flex-1 flex flex-col justify-center items-center">
-  <h1 class="text-8xl pb-4">StealthShare</h1>
+  <h1 class="text-5xl md:text-6xl lg:text-7xl pb-4">StealthShare</h1>
   <p class="text-xl text-gray-400 pb-4 mb-10">
     Store your files fast, safe and anonymously!
   </p>
 
-  <div class="h-1/3 w-2/3 flex flex-col items-center gap-4">
+  <div class="h-64 w-full md:w-3/4 px-4 flex flex-col items-center gap-4">
     <progress class="progress w-full p-2 {isUploading ? '' : 'hidden'}" />
-    {#if status?.uri}
-      <a href={status.uri} class="alert alert-success shadow-lg rounded-none"
-        >{status.uri}</a
+    {#if uploadStatus?.uri}
+      <a
+        href={uploadStatus.uri}
+        class="alert alert-success shadow-lg rounded-none">{uploadStatus.uri}</a
       >
     {/if}
-    {#if status?.error}
-      <p class="alert alert-error shadow-lg rounded-none">A {status.error}</p>
+    {#if uploadStatus?.error}
+      <p class="alert alert-error shadow-lg rounded-none">
+        A {uploadStatus.error}
+      </p>
     {/if}
     <label
       on:drop|preventDefault={dropHandler}
@@ -146,15 +216,3 @@
     </div>
   </div>
 </div>
-
-<!-- <img class="bottom-art h-1/3" src={image} alt="secret sauce" /> -->
-<style>
-  .bottom-art {
-    /* Centered bottom middle */
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translate(-50%, 0);
-    pointer-events: none;
-  }
-</style>

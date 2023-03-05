@@ -25,7 +25,7 @@ export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3, bucket = S
     return assetUrl;
 };
 
-export async function saveBlob(fn: string, blob: Blob): Promise<string> {
+export async function saveBlob(fn: string, blob: Blob, extraHeaders: { [key: string]: string } = {}): Promise<string> {
     const blobKey = smallRandom();
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -38,7 +38,7 @@ export async function saveBlob(fn: string, blob: Blob): Promise<string> {
     const uploadParams: PutObjectRequest = {
         Bucket: STORAGE_BUCKET_NAME,
         Key: blobKey, Body: buffer,
-        ContentDisposition: `attachment; filename="${encodedFn}"`
+        ContentDisposition: `attachment; filename="${encodedFn}"`,
     };
 
     return new Promise((resolve, reject) => {
