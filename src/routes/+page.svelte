@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { uploadedFiles } from "$lib/stores";
+  import { loggedUser, uploadedFiles } from "$lib/stores";
 
   let isUploading = false;
+
+  let selectedSendType = "unencrypted";
+  let encryptionPassword = "";
+  let recipientName = "";
 
   export let status: { uri?: string; error?: string } = {};
 
@@ -32,7 +36,16 @@
       return;
     }
 
-    uploadFile(items[0]);
+    alert(
+      "File being uploaded with: " +
+        selectedSendType +
+        "; extra: " +
+        encryptionPassword +
+        "; " +
+        recipientName
+    );
+
+    // uploadFile(items[0]);
   };
 
   async function dropHandler(event: DragEvent) {
@@ -61,7 +74,7 @@
     Store your files fast, safe and anonymously!
   </p>
 
-  <div class="h-1/3 w-2/3 flex flex-col gap-2">
+  <div class="h-1/3 w-2/3 flex flex-col items-center gap-4">
     <progress class="progress w-full p-2 {isUploading ? '' : 'hidden'}" />
     {#if status?.uri}
       <a href={status.uri} class="alert alert-success shadow-lg rounded-none"
@@ -91,6 +104,46 @@
       class="hidden"
       on:change={onFileChange}
     />
+
+    <div
+      class="w-full flex gap-4 align-middle justify-center items-center min-h-12 mt-4"
+    >
+      <select
+        bind:value={selectedSendType}
+        class="flex-1 select select-bordered"
+      >
+        <option selected value="unencrypted">Unencrypted</option>
+        <option value="private">Private</option>
+        <option value="protected">Password Protected</option>
+        <option value="transfer">Secure Transfer</option>
+      </select>
+      <div class="flex-1 ">
+        {#if selectedSendType === "private"}
+          {#if $loggedUser === null}
+            <div class="alert alert-warning shadow-lg">
+              <div>
+                <span
+                  >You need to log in or create an account to upload private
+                  files</span
+                >
+              </div>
+            </div>
+          {/if}
+        {:else if selectedSendType === "protected"}
+          <input
+            bind:value={encryptionPassword}
+            class="input input-bordered w-full"
+            placeholder="Password"
+          />
+        {:else if selectedSendType === "transfer"}
+          <input
+            bind:value={recipientName}
+            class="input input-bordered w-full"
+            placeholder="Recipient Username"
+          />
+        {/if}
+      </div>
+    </div>
   </div>
 </div>
 
