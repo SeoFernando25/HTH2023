@@ -1,7 +1,6 @@
 <!-- TODO: Make this page look nicer -->
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { uploadedFiles, type FileEntry } from "$lib/stores";
+  import { uploadedFiles } from "$lib/stores";
 </script>
 
 <div class=" flex-1 flex flex-col p-4">

@@ -54,10 +54,6 @@
 
     uploadFile(droppedFile);
   }
-
-  async function onDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
 </script>
 
 <div class=" flex-1 flex flex-col justify-center items-center">

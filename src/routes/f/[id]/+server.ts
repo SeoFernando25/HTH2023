@@ -1,9 +1,5 @@
-import { getUrlFromBucket, loadBlob } from "$lib/server/aws";
-import { filesInit, getFile, hasFile } from "$lib/server/files";
+import { getUrlFromBucket } from "$lib/server/aws";
 import { redirect, type RequestHandler } from "@sveltejs/kit";
-import type { GetObjectOutput } from "aws-sdk/clients/s3";
-
-// filesInit();
 
 export const GET: RequestHandler = (async ({ params }) => {
     const id = params.id;

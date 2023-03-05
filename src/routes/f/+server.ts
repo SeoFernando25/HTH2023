@@ -1,7 +1,5 @@
-import { getAllFilenames, saveBlob } from "$lib/server/aws";
+import { saveBlob } from "$lib/server/aws";
 import type { RequestHandler } from "@sveltejs/kit";
-
-// filesInit();
 
 function smallRandom() {
     return Math.random().toString(36).substring(2, 15);
