@@ -1,5 +1,9 @@
 import type { UserServerInfo, UserLocalInfo } from "./models/UserInfo";
 
+const AES_TYPE = "AES-GCM";
+const RSA_TYPE = "RSA-OAEP";
+const PRIVATE_KEY_EXPORT_TYPE = "pkcs8";
+
 export async function SHADigest(msg: ArrayBufferLike | ArrayLike<number> | string) {
     if (typeof msg === "string") {
         msg = new TextEncoder().encode(msg);
@@ -18,7 +22,7 @@ export async function generateAESKey(username: string, password: string) {
     const key = await window.crypto.subtle.importKey(
         "raw",
         keyData,
-        "AES-GCM",
+        AES_TYPE,
         false,
         ["encrypt", "decrypt"]
     );
@@ -29,7 +33,7 @@ export async function generateAESKey(username: string, password: string) {
 export async function generateRSAKey() {
     return await window.crypto.subtle.generateKey(
         {
-            name: "RSA-OAEP",
+            name: RSA_TYPE,
             modulusLength: 2048,
             publicExponent: new Uint8Array([1, 0, 1]),
             hash: "SHA-256",
@@ -42,7 +46,7 @@ export async function generateRSAKey() {
 export async function RSAencryptBytes(data: BufferSource, key: CryptoKey) {
     const encrypted = await window.crypto.subtle.encrypt(
         {
-            name: "RSA-OAEP",
+            name: RSA_TYPE,
         },
         key,
         data
@@ -53,7 +57,7 @@ export async function RSAencryptBytes(data: BufferSource, key: CryptoKey) {
 export async function RSAdecryptBytes(data: BufferSource, key: CryptoKey) {
     const decrypted = await window.crypto.subtle.decrypt(
         {
-            name: "RSA-OAEP",
+            name: RSA_TYPE,
         },
         key,
         data
@@ -65,7 +69,7 @@ export async function AESencryptBytes(ivSource: string, data: BufferSource, key:
     const iv = await SHADigest(ivSource);
     const encrypted = await window.crypto.subtle.encrypt(
         {
-            name: "AES-GCM",
+            name: AES_TYPE,
             iv,
         },
         key,
@@ -80,15 +84,17 @@ export async function AESdecryptBytes(ivSource: string, data: BufferSource | str
         data = new TextEncoder().encode(data);
     }
 
+    console.log(key);
     const iv = await SHADigest(ivSource);
     const decrypted = await window.crypto.subtle.decrypt(
         {
-            name: "AES-GCM",
+            name: AES_TYPE,
             iv,
         },
         key,
         data
     );
+    console.log("here")
     return decrypted;
 }
 
@@ -111,7 +117,7 @@ export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
     const hashedPasswordString = new TextDecoder().decode(hashedPassword);
 
     const exportPrivateKey = await window.crypto.subtle.exportKey(
-        "pkcs8",
+        PRIVATE_KEY_EXPORT_TYPE,
         privateKey
     );
 
@@ -137,8 +143,8 @@ export async function userInfoToServerInfo(userInfo: UserLocalInfo) {
     return serverInfo;
 }
 
-export async function serverInfoToUserInfo(serverInfo: UserServerInfo, username: string, password: string): Promise<UserLocalInfo> {
-    const info = await createUserLocalInfo(username, password);
+export async function serverInfoToUserInfo(serverInfo: UserServerInfo, username: string, password: string): Promise<UserLocalInfo | null> {
+    const aesKey = await generateAESKey(username, password);
 
     const serverInfoPubKey = await publicRSAJsonWebTokenToCryptoKey(
         serverInfo.publicKey
@@ -147,17 +153,25 @@ export async function serverInfoToUserInfo(serverInfo: UserServerInfo, username:
     const serverInfoPrivKeyBuff = await AESdecryptBytes(
         username,
         serverInfo.encryptedPrivateKey,
-        info.aesKey
+        aesKey
     );
+    console.log("here")
 
     const serverInfoPrivKey = await arrayBufferToPrivateRSAKey(
         serverInfoPrivKeyBuff
     );
 
+    // Check if password matches
+    const hashedPasswordString = new TextDecoder().decode(await SHADigest(password));
+    if (hashedPasswordString !== serverInfo.hashedPassword) {
+        console.log("Password doesn't match");
+        return null;
+    }
+
     return {
-        username: info.username,
-        password: info.password,
-        aesKey: info.aesKey,
+        username,
+        password,
+        aesKey,
         privateKey: serverInfoPrivKey,
         publicKey: serverInfoPubKey
     }
@@ -168,7 +182,7 @@ export async function publicRSAJsonWebTokenToCryptoKey(jwk: JsonWebKey) {
         "jwk",
         jwk,
         {
-            name: "RSA-OAEP",
+            name: RSA_TYPE,
             hash: "SHA-256",
         },
         true,
@@ -179,10 +193,10 @@ export async function publicRSAJsonWebTokenToCryptoKey(jwk: JsonWebKey) {
 // Don't forget to decrypt the array buffer first
 export async function arrayBufferToPrivateRSAKey(arrayBuffer: ArrayBuffer) {
     return await window.crypto.subtle.importKey(
-        "pkcs8",
+        PRIVATE_KEY_EXPORT_TYPE,
         arrayBuffer,
         {
-            name: "RSA-OAEP",
+            name: RSA_TYPE,
             hash: "SHA-256",
         },
         true,

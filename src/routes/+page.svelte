@@ -21,7 +21,6 @@
     isUploading = false;
     $uploadedFiles = [...$uploadedFiles, { filename: file.name, uri: res }];
     localStorage.setItem("uploads", JSON.stringify($uploadedFiles));
-
     status.uri = res;
   };
 

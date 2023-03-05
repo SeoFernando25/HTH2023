@@ -15,7 +15,7 @@ process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY;
 const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
 
 export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3, bucket = STORAGE_BUCKET_NAME): string | undefined {
-    const { config: { params, region, } } = s3Bucket;
+    const { config: { region, } } = s3Bucket;
 
     if (!region) {
         return;

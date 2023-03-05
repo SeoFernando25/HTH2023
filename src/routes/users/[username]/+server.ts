@@ -4,12 +4,12 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { z } from "zod";
 
 export const GET = (async ({ params }) => {
-    if (!params.username) return new Response("Not found", { status: 404 });
+    if (!params.username) return new Response("Bad request", { status: 404 });
     let userInfo: UserServerInfo;
     try {
         userInfo = await getUserKeys(params.username);
     } catch (error) {
-        return new Response("Not found", { status: 404 });
+        return new Response("User not found", { status: 404 });
     }
 
     return new Response(JSON.stringify(userInfo), { status: 200 });
@@ -18,7 +18,7 @@ export const GET = (async ({ params }) => {
 
 export const POST = (async ({ request, params }) => {
     try {
-        const userInfo = await getUserKeys(params.username ?? '');
+        await getUserKeys(params.username ?? '');
         return new Response("User already exists", { status: 409 });
     } catch (error) {
         //If user does not exist, we are good to go
