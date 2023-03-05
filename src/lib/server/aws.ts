@@ -25,11 +25,8 @@ export function getUrlFromBucket(fileName: string, s3Bucket: S3 = s3, bucket = S
     return assetUrl;
 };
 
-export async function saveBlob(fn: string, blob: Blob, extraHeaders: { [key: string]: string } = {}): Promise<string> {
+export async function saveBlob(fn: string, data: Uint8Array, extraHeaders: { [key: string]: string } = {}): Promise<string> {
     const blobKey = smallRandom();
-    const arrayBuffer = await blob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    console.log(buffer.length)
     console.log("Uploading file: ", fn, " to ", blobKey);
 
     // convert fn to uri encoded
@@ -37,7 +34,7 @@ export async function saveBlob(fn: string, blob: Blob, extraHeaders: { [key: str
 
     const uploadParams: PutObjectRequest = {
         Bucket: STORAGE_BUCKET_NAME,
-        Key: blobKey, Body: buffer,
+        Key: blobKey, Body: data,
         ContentDisposition: `attachment; filename="${encodedFn}"`,
     };
 

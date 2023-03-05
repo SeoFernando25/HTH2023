@@ -88,6 +88,7 @@ export async function AESencryptBytes(ivSource: string, data: BufferSource, key:
 
 export async function AESdecryptBytes(ivSource: string, data: BufferSource | string, key: CryptoKey) {
     if (typeof data === "string") {
+        console.log("decoding stuff")
         data = new TextEncoder().encode(data);
     }
 

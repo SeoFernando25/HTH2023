@@ -37,3 +37,18 @@ export function numberArrayToIntArray(arr: number[]) {
     }
     return result;
 }
+
+
+export function downloadData(filename: string, data: Uint8Array) {
+    var element = document.createElement('a');
+    const toStr = String.fromCharCode(...data);
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(toStr));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}

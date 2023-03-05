@@ -8,6 +8,7 @@
   import type { UserServerInfo } from "$lib/models/UserInfo";
   import { loggedUser, uploadedFiles } from "$lib/stores";
   import { page } from "$app/stores";
+  import { intArrayToNumberArray } from "$lib/util";
 
   let isUploading = false;
 
@@ -31,10 +32,15 @@
           uploadStatus.error = "You need to log in to upload private files";
           return;
         }
-        // Encrypt file with user's public key
+        // Encrypt file with user's AES key
 
-        const publicKey = $loggedUser.publicKey;
-        fileBuffer = await RSAencryptBytes(fileBuffer, publicKey);
+        const aesKey = $loggedUser.aesKey;
+        fileBuffer = await AESencryptBytes(
+          $loggedUser.password,
+          fileBuffer,
+          aesKey
+        );
+        console.log(fileBuffer);
         break;
       }
       case "protected": {
@@ -86,9 +92,14 @@
       }
     }
 
+    console.log("uploading file");
+
+    fileBuffer = new Uint8Array(fileBuffer);
+
+    const numArr = intArrayToNumberArray(fileBuffer as Uint8Array);
     const results = await fetch(`/f?name=${fileName}`, {
       method: "POST",
-      body: fileBuffer,
+      body: JSON.stringify(numArr),
       //@ts-ignore
       duplex: "half",
     });

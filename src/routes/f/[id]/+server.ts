@@ -17,8 +17,9 @@ export const GET: RequestHandler = (async ({ params, url }) => {
         const redirectCode = 302;
         console.log("Redirecting to: ", bucketUrl);
         if (noredirect) {
-            return new Response(bucketUrl, { status: redirectCode });
+            console.log("Not redirecting");
         }
+        console.log("Redirecting");
         throw redirect(redirectCode, bucketUrl);
     }
 

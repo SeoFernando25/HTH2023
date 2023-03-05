@@ -6,6 +6,7 @@
     RSAdecryptBytes,
   } from "$lib/browserCrypt";
   import { loggedUser } from "$lib/stores";
+  import { downloadData } from "$lib/util";
 
   let pageId = $page.params.id;
   let origin = $page.url.origin;
@@ -21,19 +22,21 @@
       return;
     }
     file = files.files[0];
+    console.log(file);
     let decrypted = await file.arrayBuffer();
 
     if (decryptionMethod === "ownKey") {
       // Get my private key
-      const priv = $loggedUser?.privateKey;
-      if (priv === undefined) {
+      if (!$loggedUser) {
         error = "You need to be logged in to decrypt with your key";
         return;
-      } else {
-        error = "";
       }
 
-      decrypted = await RSAdecryptBytes(decrypted, priv);
+      decrypted = await AESdecryptBytes(
+        $loggedUser?.password,
+        decrypted,
+        $loggedUser?.aesKey
+      );
     } else if (decryptionMethod === "password") {
       // Decrypt with password AWS
       const aesKey = await generateAESKey(password, password);
@@ -46,9 +49,8 @@
       }
     }
 
-    const blob = new Blob([decrypted], { type: file.type });
-
-    const url = URL.createObjectURL(blob);
+    const arr = new Uint8Array(decrypted);
+    downloadData(file.name, arr);
   }
 
   async function decryptWithOwnKey() {
