@@ -15,10 +15,10 @@ export const POST = (async ({ params, request, platform }) => {
       "File bucket not found (don't worry this is a server-side error)",
       { status: 500 }
     );
-  const head = await storage.head(filename);
-  if (head) {
-    return new Response("Already exists", { status: 409 });
-  }
+  // const head = await storage.head(filename);
+  // if (head) {
+  //   return new Response("Already exists", { status: 409 });
+  // }
 
   const blob = await request.arrayBuffer();
   await storage.put(filename, blob);
