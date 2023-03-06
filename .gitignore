@@ -11,4 +11,4 @@ vite.config.ts.timestamp-*
 
 
 # Server data folder
-files/
+.cloudflare

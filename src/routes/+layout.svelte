@@ -22,7 +22,7 @@
   <slot />
 </div>
 
-<img class="bottom-art h-1/3" src={image} alt="secret sauce" />
+<img class="bottom-art h-1/3" src="{image}" alt="secret sauce" />
 
 <style>
   @tailwind base;

@@ -8,7 +8,6 @@
   import type { UserServerInfo } from "$lib/models/UserInfo";
   import { loggedUser, uploadedFiles } from "$lib/stores";
   import { page } from "$app/stores";
-  import { intArrayToNumberArray } from "$lib/util";
 
   let isUploading = false;
 
@@ -16,12 +15,66 @@
   let selectedSendType: SendTypes = "unencrypted";
   let encryptionPassword = "";
   let recipientName = "";
+  let fileName = "";
+
+  // Update file name when file changes
+  $: {
+    if (currentFiles && currentFiles[0]) {
+      fileName = currentFiles[0].name;
+    }
+  }
+
+  let currentFiles: FileList;
+  const FILE_SIZE_LIMIT_MB = 100; // 100MB
 
   export let uploadStatus: { uri?: string; error?: string } = {};
 
-  const uploadFile = async (file: File, fileName: string) => {
-    isUploading = true;
+  let _ignoreFirst = true;
+  function updateError() {
+    if (_ignoreFirst) {
+      _ignoreFirst = false;
+      return;
+    }
 
+    uploadStatus.error = "";
+    if (!currentFiles || !currentFiles[0]) {
+      uploadStatus.error = "No files";
+      return;
+    } else {
+      if (currentFiles[0].size > FILE_SIZE_LIMIT_MB * 1024 * 1024) {
+        uploadStatus.error = `File too big!`;
+        return;
+      }
+    }
+    if (fileName === "") {
+      uploadStatus.error = "You need to provide a file name";
+      return;
+    }
+  }
+
+  $: {
+    currentFiles;
+    fileName;
+    updateError();
+  }
+
+  const reqUploadFile = async () => {
+    updateError();
+    if (uploadStatus.error) {
+      return;
+    }
+
+    if (isUploading) {
+      return;
+    }
+
+    await uploadFile(currentFiles, fileName);
+  };
+
+  const uploadFile = async (fileList: FileList, fileName: string) => {
+    isUploading = true;
+    const file = fileList[0];
+    console.log(file);
     let fileBuffer = await file.arrayBuffer();
     let encryptedRecipientName = "";
     switch (selectedSendType) {
@@ -96,13 +149,26 @@
 
     fileBuffer = new Uint8Array(fileBuffer);
 
-    const numArr = intArrayToNumberArray(fileBuffer as Uint8Array);
-    const results = await fetch(`/f?name=${fileName}`, {
+    const results = await fetch(`api/f/${fileName}`, {
       method: "POST",
-      body: JSON.stringify(numArr),
-      //@ts-ignore
-      duplex: "half",
+      body: fileBuffer,
     });
+
+    if (results.status !== 200) {
+      if (results.status === 413) {
+        uploadStatus.error = "File too big";
+        isUploading = false;
+        return;
+      }
+
+      try {
+        uploadStatus.error = await results.text();
+      } catch (error) {
+        uploadStatus.error = "Something went wrong";
+      }
+      isUploading = false;
+      return;
+    }
 
     const res = await results.text();
     console.log("file uploaded");
@@ -114,64 +180,63 @@
       uploadStatus.error = "No file id, something went wrong";
       return;
     }
-    uploadStatus.uri = $page.url + "file/" + lastFragment;
-  };
-
-  const onFileChange = async (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    const items = target.files;
-    if (!items) {
-      uploadStatus.error = "No files";
-      return;
-    }
-
-    uploadFile(items[0], items[0].name);
+    uploadStatus.uri = $page.url + "f/" + fileName;
   };
 
   async function dropHandler(event: DragEvent) {
     if (!event.dataTransfer) {
       return;
     }
-    const items = event.dataTransfer.items;
+    const items = event.dataTransfer.files;
     if (items.length === 0) {
       uploadStatus.error = "No files";
       return;
     }
 
-    const droppedFile = items[0].getAsFile();
+    const droppedFile = items[0];
     if (!droppedFile) {
       uploadStatus.error = "Not a file";
       return;
     }
 
-    uploadFile(droppedFile, droppedFile.name);
+    fileName = droppedFile.name;
+    currentFiles = event.dataTransfer.files;
   }
 </script>
 
-<div class=" flex-1 flex flex-col justify-center items-center">
-  <h1 class="text-5xl md:text-6xl lg:text-7xl pb-4">StealthShare</h1>
-  <p class="text-xl text-gray-400 pb-4 mb-10">
+<div class="prose text-center self-center">
+  <h1 class="">StealthShare</h1>
+  <h2 class="text-xl text-gray-400 pb-4 mb-10">
     Store your files fast, safe and anonymously!
-  </p>
+  </h2>
+</div>
+<div class=" flex-1 flex flex-col items-center gap-4 container self-center">
+  <div class="h-96  w-full px-4 flex flex-col items-center gap-4">
+    <input
+      type="text"
+      class=" input input-bordered w-full input-primary"
+      placeholder="File name"
+      bind:value="{fileName}"
+    />
 
-  <div class="h-64 w-full md:w-3/4 px-4 flex flex-col items-center gap-4">
-    <progress class="progress w-full p-2 {isUploading ? '' : 'hidden'}" />
+    <progress class="progress w-full p-2 {isUploading ? '' : 'hidden'}"
+    ></progress>
     {#if uploadStatus?.uri}
       <a
-        href={uploadStatus.uri}
+        href="{uploadStatus.uri}"
         class="alert alert-success shadow-lg rounded-none">{uploadStatus.uri}</a
       >
     {/if}
     {#if uploadStatus?.error}
       <p class="alert alert-error shadow-lg rounded-none">
-        A {uploadStatus.error}
+        {@html uploadStatus.error}
       </p>
     {/if}
     <label
-      on:drop|preventDefault={dropHandler}
+      on:drop|preventDefault="{dropHandler}"
       on:dragover|preventDefault
       for="file"
-      class="w-full h-full btn btn-primary rounded-3xl shadow-2xl"
+      class="w-full flex-1 btn btn-primary rounded-3xl shadow-2xl"
     >
       <h2 class="text-primary-content">
         Drop a file or <span class=" link  link-info cursor-pointer">
@@ -185,7 +250,26 @@
       name="file"
       type="file"
       class="hidden"
-      on:change={onFileChange}
+      bind:files="{currentFiles}"
+    />
+
+    <!-- Submit button -->
+    <!-- TODO: Add submit stuff -->
+    <input
+      type="submit"
+      class="btn btn-accent w-full h-24 
+      {uploadStatus.error ? 'btn-disabled' : ''}
+      {currentFiles ? '' : 'btn-disabled'} 
+      {isUploading ? 'btn-disabled' : ''} 
+      {fileName ? '' : 'btn-disabled'}
+      "
+      on:click="{reqUploadFile}"
+      value="Upload"
     />
   </div>
+
+  <!-- File size limit -->
+  <p class="text-gray-400 text-sm">
+    Max file size: {FILE_SIZE_LIMIT_MB} MB
+  </p>
 </div>
