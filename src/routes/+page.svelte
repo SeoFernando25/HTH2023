@@ -211,7 +211,7 @@
   </h2>
 </div>
 <div class=" flex-1 flex flex-col items-center gap-4 container self-center">
-  <div class="h-96  w-full px-4 flex flex-col items-center gap-4">
+  <div class="h-72  w-full px-4 flex flex-col items-center gap-4">
     <input
       type="text"
       class=" input input-bordered w-full input-primary"

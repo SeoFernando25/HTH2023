@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { uploadedFiles, type FileEntry } from "$lib/stores";
   import Header from "$lib/components/Header.svelte";
-  import image from "$lib/assets/secret_sauce.png";
+  import image from "$lib/assets/secret_sauce.webp";
 
   onMount(async () => {
     // Check if we have a "uploads" key in localStorage a json array
@@ -22,7 +22,7 @@
   <slot />
 </div>
 
-<img class="bottom-art h-1/3" src="{image}" alt="secret sauce" />
+<img class="bottom-art" src="{image}" alt="secret sauce" />
 
 <style>
   @tailwind base;
@@ -34,14 +34,17 @@
     position: fixed;
     bottom: 0;
     right: 0;
-    transform: translate(15%, 30%) scaleX(-1);
+    /* Scale height relative to viewport height */
+    height: min(30vh, 30vw);
+
+    transform: translate(-10%, 30%);
     transition: transform 0.2s ease-in-out;
   }
 
   /* on hover goes slightly up */
 
   .bottom-art:hover {
-    transform: translate(15%, 30%) scaleX(-1) translateY(-20px);
+    transform: translate(-10%, 30%) translateY(-30px);
     transition: transform 0.2s ease-in-out;
   }
 </style>
