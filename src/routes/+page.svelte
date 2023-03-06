@@ -8,6 +8,7 @@
   import type { UserServerInfo } from "$lib/models/UserInfo";
   import { loggedUser, uploadedFiles } from "$lib/stores";
   import { page } from "$app/stores";
+  import QrCode from "$lib/components/QrCode.svelte";
 
   let isUploading = false;
 
@@ -227,6 +228,9 @@
         href="{uploadStatus.uri}"
         class="alert alert-success shadow-lg rounded-none">{uploadStatus.uri}</a
       >
+      <div class="flex flex-col items-center gap-4 h-36">
+        <QrCode value="{uploadStatus.uri}" />
+      </div>
     {/if}
     {#if uploadStatus?.error}
       <p class="alert alert-error shadow-lg rounded-none">
