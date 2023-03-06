@@ -18,10 +18,8 @@
   let fileName = "";
 
   // Update file name when file changes
-  $: {
-    if (currentFiles && currentFiles[0]) {
-      fileName = currentFiles[0].name;
-    }
+  $: if (currentFiles && currentFiles[0] && fileName === "") {
+    fileName = currentFiles[0].name;
   }
 
   let currentFiles: FileList;
@@ -54,7 +52,7 @@
 
   $: {
     currentFiles;
-    fileName;
+    // fileName;
     updateError();
   }
 
