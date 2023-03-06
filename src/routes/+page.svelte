@@ -189,7 +189,7 @@
     }
     const items = event.dataTransfer.files;
     if (items.length === 0) {
-      uploadStatus.error = "No files";
+      uploadStatus.error = "Not a file";
       return;
     }
 
@@ -204,23 +204,26 @@
   }
 </script>
 
-<div class="prose text-center self-center">
-  <h1 class="">StealthShare</h1>
-  <h2 class="text-xl text-gray-400 pb-4 mb-10">
-    Store your files fast, safe and anonymously!
-  </h2>
-</div>
-<div class=" flex-1 flex flex-col items-center gap-4 container self-center">
-  <div class="h-72  w-full px-4 flex flex-col items-center gap-4">
+<!-- on:drop|preventDefault="{dropHandler}" -->
+<!-- on:dragover|preventDefault -->
+<div
+  class="flex flex-col"
+  on:drop|preventDefault="{dropHandler}"
+  on:dragover|preventDefault
+>
+  <div class="prose text-center self-center">
+    <h1 class="">StealthShare</h1>
+    <h2 class="text-xl text-gray-400 pb-4 mb-10">
+      Store your files fast, safe and anonymously!
+    </h2>
+  </div>
+  <div class=" flex-1 flex flex-col items-center gap-4 container self-center">
     <input
       type="text"
       class=" input input-bordered w-full input-primary"
       placeholder="File name"
       bind:value="{fileName}"
     />
-
-    <progress class="progress w-full p-2 {isUploading ? '' : 'hidden'}"
-    ></progress>
     {#if uploadStatus?.uri}
       <a
         href="{uploadStatus.uri}"
@@ -232,44 +235,51 @@
         {@html uploadStatus.error}
       </p>
     {/if}
-    <label
-      on:drop|preventDefault="{dropHandler}"
-      on:dragover|preventDefault
-      for="file"
-      class="w-full flex-1 btn btn-primary rounded-3xl shadow-2xl"
-    >
-      <h2 class="text-primary-content">
-        Drop a file or <span class=" link  link-info cursor-pointer">
-          Click
-        </span>
-      </h2>
-    </label>
+    <progress class="progress w-full  {isUploading ? '' : 'hidden'}"></progress>
+    <div class="h-36 w-full flex flex-col items-center gap-4">
+      <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+      <label
+        tabindex="0"
+        on:keydown="{(e) => {
+          if (e.key === 'Enter') {
+            document.getElementById('file')?.click();
+          }
+        }}"
+        for="file"
+        class="w-full flex-1 btn btn-primary rounded-3xl shadow-2xl"
+      >
+        <h2 class="text-primary-content">
+          Drop a file or <span class=" link  link-info cursor-pointer">
+            Click
+          </span>
+        </h2>
+      </label>
 
-    <input
-      id="file"
-      name="file"
-      type="file"
-      class="hidden"
-      bind:files="{currentFiles}"
-    />
-
+      <input
+        id="file"
+        name="file"
+        type="file"
+        class="hidden"
+        bind:files="{currentFiles}"
+      />
+    </div>
     <!-- Submit button -->
     <!-- TODO: Add submit stuff -->
     <input
       type="submit"
       class="btn btn-accent w-full h-24 
-      {uploadStatus.error ? 'btn-disabled' : ''}
-      {currentFiles ? '' : 'btn-disabled'} 
-      {isUploading ? 'btn-disabled' : ''} 
-      {fileName ? '' : 'btn-disabled'}
-      "
+    {uploadStatus.error ? 'btn-disabled' : ''}
+    {currentFiles ? '' : 'btn-disabled'} 
+    {isUploading ? 'btn-disabled' : ''} 
+    {fileName ? '' : 'btn-disabled'}
+    "
       on:click="{reqUploadFile}"
       value="Upload"
     />
-  </div>
 
-  <!-- File size limit -->
-  <p class="text-gray-400 text-sm">
-    Max file size: {FILE_SIZE_LIMIT_MB} MB
-  </p>
+    <!-- File size limit -->
+    <p class="text-gray-400 text-sm">
+      Max file size: {FILE_SIZE_LIMIT_MB} MB
+    </p>
+  </div>
 </div>
