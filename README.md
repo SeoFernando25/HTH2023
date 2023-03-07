@@ -1,3 +1,5 @@
-# HTH 2023
+# StealthShare
 
-Note: Add a `.env` file with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+Store your files fast, safe and anonymously!
+
+README WIP
