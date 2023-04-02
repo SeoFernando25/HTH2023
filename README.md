@@ -1,5 +1,3 @@
 # StealthShare
 
-Store your files fast, safe and anonymously!
-
-README WIP
+Store your files fast and anonymously!
